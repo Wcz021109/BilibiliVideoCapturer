@@ -816,11 +816,13 @@ class BilibiliDownloaderApp:
             self.root.after(0, lambda: messagebox.showinfo("完成", f"视频已保存为:\n{output_name}"))
 
         except RuntimeError as e:
-            self._log(f"[错误] {e}")
-            self.root.after(0, lambda: messagebox.showerror("错误", str(e)))
+            err_msg = f"运行时错误：\n{e}"
+            self._log(f"[错误] 运行时错误： {e}")
+            self.root.after(0, lambda: m=err_msg: messagrbox.showerror("错误", m))
         except Exception as e:
+            err_msg = f"未知错误：\n{e}"
             self._log(f"[错误] 未知错误: {e}")
-            self.root.after(0, lambda: messagebox.showerror("错误", f"未知错误:\n{e}"))
+            self.root.after(0, lambda: m=err_msg: messagrbox.showerror("错误", m))
         finally:
             self.is_merging = False
             self._process_holder.clear()
