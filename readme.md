@@ -33,6 +33,51 @@ pip install requests
 - **ffmpeg** 和 **ffprobe**（用于合并、转码及编码识别）
   下载地址：[ffmpeg.org](https://ffmpeg.org/download.html)
   *安装后请确保 `ffmpeg` 和 `ffprobe` 命令可在终端/命令行中直接调用（已加入系统 PATH）。*
+  ffmpeg支持通过包管理软件安装。
+
+```bash
+  # Debian / Ubuntu / Kali Linux
+  sudo apt update
+  sudo apt install ffmpeg
+```
+```bash
+  # ArchLinux / Manjaro
+  sudo pacman -Syu ffmpeg
+```
+```bash
+  # RHEL/CentOS7（需要先配置RPM Fusion/Nux Dextop第三方源）
+  sudo yum install epel-release
+  # 配置RPM Fusion源之后，再执行
+  sudo yum install ffmpeg
+```
+```bash
+  # RHEL8+/CentOS8+/Rocky/AlmaLinux 使用 dnf
+  sudo dnf install epel-release
+  # 配置RPM Fusion源之后，再执行
+  sudo dnf install ffmpeg
+```
+
+  在Windows端可使用Winget或Chocolaety包管理器安装
+
+```Powershell
+  # Winget（需要先安装Winget）
+  winget install Gyan.FFmpeg
+```
+  注意：
+  - 包 ID：`Gyan.FFmpeg` 为 full_build 完整版本；另有精简版 `Gyan.FFmpeg.Essentials`。
+  - 安装后自动写入用户 PATH，**必须新开终端才生效**。
+  - Win10 旧版本如果提示`winget`不是命令，需要在微软商店安装更新「App Installer」。
+  - 不支持 Windows7。
+
+```Powershell
+  # Chocolatey（需要先安装Chocolatey）
+  choco install ffmpeg
+```
+  注意：
+  -Chocolatey 包解压目录：`C:\ProgramData\chocolatey\lib\ffmpeg\tools`
+  -**真正 ffmpeg.exe、ffprobe.exe 在下级 bin 目录：`C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin`**
+  -choco 会自动将 bin 目录加入系统 PATH，新开终端即可直接调用 ffmpeg 命令；
+  -Chocolatey 的根目录可通过环境变量`%ChocolateyInstall%`修改，路径不一定固定在 C 盘。
 
 ---
 
