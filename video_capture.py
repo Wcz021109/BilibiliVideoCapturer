@@ -817,12 +817,12 @@ class BilibiliDownloaderApp:
 
         except RuntimeError as e:
             err_msg = f"运行时错误：\n{e}"
-            self._log(f"[错误] 运行时错误： {e}")
-            self.root.after(0, lambda: m=err_msg: messagrbox.showerror("错误", m))
+            self._log(f"[错误] 运行时错误：{e}")
+            self.root.after(0, lambda m=err_msg: messagebox.showerror("错误", m))
         except Exception as e:
             err_msg = f"未知错误：\n{e}"
             self._log(f"[错误] 未知错误: {e}")
-            self.root.after(0, lambda: m=err_msg: messagrbox.showerror("错误", m))
+            self.root.after(0, lambda m=err_msg: messagebox.showerror("错误", m))
         finally:
             self.is_merging = False
             self._process_holder.clear()
