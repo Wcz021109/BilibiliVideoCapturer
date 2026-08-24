@@ -751,14 +751,17 @@ class BilibiliDownloaderApp:
             self.download_ready = True
 
         except requests.exceptions.RequestException as e:
+            err_msg = f"网络请求失败:\n{e}"
             self._log(f"[错误] 网络请求失败: {e}")
-            self.root.after(0, lambda: messagebox.showerror("错误", f"网络请求失败:\n{e}"))
+            self.root.after(0, lambda m=err_msg: messagebox.showerror("错误", m))
         except RuntimeError as e:
+            err_msg = str(e)
             self._log(f"[错误] {e}")
-            self.root.after(0, lambda: messagebox.showerror("错误", str(e)))
+            self.root.after(0, lambda m=err_msg: messagebox.showerror("错误", m))
         except Exception as e:
+            err_msg = f"未知错误:\n{e}"
             self._log(f"[错误] 未知错误: {e}")
-            self.root.after(0, lambda: messagebox.showerror("错误", f"未知错误:\n{e}"))
+            self.root.after(0, lambda m=err_msg: messagebox.showerror("错误", m))
         finally:
             self.is_busy = False
             self.root.after(0, lambda: self._set_controls_busy(False))
