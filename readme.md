@@ -33,7 +33,8 @@ pip install requests
 - **ffmpeg** 和 **ffprobe**（用于合并、转码及编码识别）
   下载地址：[ffmpeg.org](https://ffmpeg.org/download.html)
   *安装后请确保 `ffmpeg` 和 `ffprobe` 命令可在终端/命令行中直接调用（已加入系统 PATH）。*
-  ffmpeg支持通过包管理软件安装。
+  
+- ffmpeg支持通过包管理软件安装。
 
 ```bash
   # Debian / Ubuntu / Kali Linux
@@ -57,7 +58,7 @@ pip install requests
   sudo dnf install ffmpeg
 ```
 
-  在Windows端可使用Winget或Chocolaety包管理器安装
+- 在Windows端可使用Winget或Chocolaety包管理器安装
 
 ```Powershell
   # Winget（需要先安装Winget）
@@ -74,10 +75,10 @@ pip install requests
   choco install ffmpeg
 ```
   注意：
-  -Chocolatey 包解压目录：`C:\ProgramData\chocolatey\lib\ffmpeg\tools`
-  -**真正 ffmpeg.exe、ffprobe.exe 在下级 bin 目录：`C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin`**
-  -choco 会自动将 bin 目录加入系统 PATH，新开终端即可直接调用 ffmpeg 命令；
-  -Chocolatey 的根目录可通过环境变量`%ChocolateyInstall%`修改，路径不一定固定在 C 盘。
+  - Chocolatey 包解压目录：`C:\ProgramData\chocolatey\lib\ffmpeg\tools`
+  - **真正 ffmpeg.exe、ffprobe.exe 在下级 bin 目录：`C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin`**
+  - choco 会自动将 bin 目录加入系统 PATH，新开终端即可直接调用 ffmpeg 命令；
+  - Chocolatey 的根目录可通过环境变量`%ChocolateyInstall%`修改，路径不一定固定在 C 盘。
 
 ---
 
