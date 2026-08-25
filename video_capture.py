@@ -13,6 +13,7 @@ import re
 import json
 import subprocess
 import threading
+import webbrowser
 import tkinter as tk
 from tkinter import ttk, messagebox
 import requests
@@ -24,6 +25,8 @@ import requests
 DEFAULT_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
               "AppleWebKit/537.36 (KHTML, like Gecko) "
               "Chrome/151.0.0.0 Safari/537.36")
+
+VERSION = "1.0.0 Beta1"
 
 QUALITY_DESC = {
     127: "8K 超高清", 126: "杜比视界", 125: "HDR 真彩",
@@ -340,33 +343,56 @@ TUTORIAL_TEXT = """\
 
 快速方式（推荐）
 ───────────────────────────────────────
-• URL/refer 一般就是视频网页地址（如 https://www.bilibili.com/video/BVxxxxxx）
-• 音视频流地址可留空，留空时自动获取该视频默认清晰度的音视频流
-• 只需填写 URL/refer + User-Agent，点击「解析并下载」即可
+• Referer：填写视频网页地址，例如 https://www.bilibili.com/video/BVxxxxxx
+• 音视频流地址可留空，留空时程序自动获取该视频默认清晰度的音视频流
+• 只需填写 Referer + User‑Agent，点击「解析并下载」即可
 
 手动方式（需要指定特定清晰度时）
 ───────────────────────────────────────
 第 1 步：打开 B 站视频页面并播放
-第 2 步：按 F12 → Network（网络）面板
+第 2 步：按 F12 打开开发者工具 → 切换到 Network（网络）面板
 第 3 步：筛选 m4s
 第 4 步：识别音视频流
-  • 视频流：URL 末尾 -1-100028.m4s 等
-  • 音频流：URL 末尾 -1-30280.m4s（30 开头）
-第 5 步：右键 → Copy → Copy URL address
-第 6 步：Headers 中复制 URL/refer 和 User-Agent
-  （URL/refer 一般就是当前视频网页地址）
+  • 视频m4s：片段ID多为 10xxxx 系列，例：-1‑100028.m4s
+  • 音频m4s：片段ID多为 30xxxx 系列，例：-1‑30280.m4s
+  • 本程序会检测流格式，音视频链接填反可自动调换；但若两条链接同为视频或同为音频，则无法修复。
+第 5 步：选中对应请求，右键 → Copy → Copy URL address，复制 m4s 的完整流地址
+第 6 步：获取请求头伪装信息
+  • Referer：直接复制浏览器地址栏的B站视频网页地址
+  • User‑Agent：在该请求的请求头列表复制 User‑Agent 的值
 第 7 步：粘贴到下载器 →「解析并下载」
         → 等待下载完成并自动识别编码
         → 选择输出格式 →「开始合并」
 
 注意事项
 ───────────────────────────────────────
-• 视频流和音频流必须同时填写，或同时留空
-• 只填一个会报错
-• 下载仅执行一次，合并可反复尝试（无需重新下载）
-• 合并中可点击「中止合并」终止 ffmpeg 进程
-• 编码与容器不兼容时 ffmpeg 会报错（如 ProRes 不能封装进 AVI）
-• 临时文件在 temp/，成品在 out/
+• 手动模式下视频流、音频流必须同时填写；快速模式二者同时留空。只填其中一个会报错。
+• 下载仅执行一次，合并可反复尝试，无需重新下载文件。
+• 合并过程可点击「中止合并」终止 ffmpeg 进程。
+• 编码与容器不兼容时 ffmpeg 会报错（例如 ProRes 不能封装进 AVI）。
+• 临时文件存放于 temp/，输出成品存放于 out/。
+"""
+# 关于窗口链接（用于替换 ABOUT_TEXT 中的标记）
+BILI_TOKEN = "[BILI]"
+GITHUB_TOKEN = "[GITHUB]"
+BILI_URL = "https://space.bilibili.com/477980669"
+GITHUB_URL = "https://github.com/Wcz021109/BilibiliVideoCapturer"
+
+ABOUT_TEXT = f"""\
+B站视频下载器
+版本 {VERSION}
+作者 {BILI_TOKEN}
+程序使用 Doubao-2.1 Turbo 辅助构建
+═══════════════════════════════════════════
+
+重要合规提示
+───────────────────────────────────────
+本工具仅用于个人已获得观看权限内容的本地离线备份。禁止用于侵权下载、二次分发、商用传播，请遵守平台用户协议与著作权相关法律法规。
+
+获取更新
+───────────────────────────────────────
+您可通过Github获取本程序的更新。
+项目地址：{GITHUB_TOKEN}
 """
 
 
@@ -385,6 +411,74 @@ class TutorialWindow:
         text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=8, pady=8)
         sb.pack(side=tk.RIGHT, fill=tk.Y, pady=8)
         ttk.Button(self.window, text="关闭", command=self.window.destroy).pack(side=tk.BOTTOM, pady=6)
+
+
+class AboutWindow:
+    def __init__(self, parent):
+        self.window = tk.Toplevel(parent)
+        self.window.title("关于 B站视频下载器")
+        self.window.geometry("460x340")
+        self.window.transient(parent)
+        self.window.grab_set()
+
+        self._load_icons()
+
+        self.text = tk.Text(self.window, wrap=tk.WORD, font=("Microsoft YaHei", 9))
+        sb = ttk.Scrollbar(self.window, command=self.text.yview)
+        self.text.configure(yscrollcommand=sb.set)
+        self.text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=8, pady=4)
+        sb.pack(side=tk.RIGHT, fill=tk.Y, pady=4)
+
+        self._insert_about()
+        self.text.config(state=tk.DISABLED)
+
+        ttk.Button(self.window, text="关闭", command=self.window.destroy).pack(side=tk.BOTTOM, pady=6)
+
+    def _icon_path(self, name):
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons", name)
+
+    def _load_icons(self):
+        """加载 Logo 图片（缺失时降级为纯文字链接）"""
+        self.bili_img = None
+        self.gh_img = None
+        try:
+            img = tk.PhotoImage(file=self._icon_path("bilibili_32.png"))
+            self.bili_img = img.subsample(2, 2)  # 32 -> 16
+        except Exception:
+            pass
+        try:
+            img = tk.PhotoImage(file=self._icon_path("github-mark.png"))
+            self.gh_img = img.subsample(18, 18)  # 288 -> 16
+        except Exception:
+            pass
+
+    def _insert_about(self):
+        text = self.text
+        content = ABOUT_TEXT
+        # 依次处理两个链接标记
+        for token, img, link_text, url in [
+            (BILI_TOKEN, self.bili_img, "@王老吸", BILI_URL),
+            (GITHUB_TOKEN, self.gh_img, "Github", GITHUB_URL),
+        ]:
+            pos = content.find(token)
+            if pos == -1:
+                continue
+            text.insert("end", content[:pos])
+            start = text.index("end-1c")
+            if img:
+                text.image_create("end", image=img)
+            text.insert("end", " " + link_text)
+            end = text.index("end-1c")
+            tag = f"link_{link_text}"
+            text.tag_add(tag, start, end)
+            text.tag_config(tag, foreground="#1560BD", underline=True)
+            text.tag_bind(tag, "<Button-1>", lambda e, u=url: webbrowser.open(u))
+            text.tag_bind(tag, "<Enter>",
+                          lambda e: text.config(cursor="hand2"))
+            text.tag_bind(tag, "<Leave>",
+                          lambda e: text.config(cursor=""))
+            content = content[pos + len(token):]
+        text.insert("end", content)
 
 
 # ============================================================
@@ -424,6 +518,7 @@ class BilibiliDownloaderApp:
         top = ttk.Frame(self.root)
         top.pack(fill=tk.X, **pad)
         ttk.Label(top, text="B站视频下载器", font=("Microsoft YaHei", 14, "bold")).pack(side=tk.LEFT)
+        ttk.Button(top, text="关于", command=self._open_about).pack(side=tk.RIGHT)
         ttk.Button(top, text="教程", command=self._open_tutorial).pack(side=tk.RIGHT)
 
         # 输入区
@@ -587,6 +682,9 @@ class BilibiliDownloaderApp:
     def _open_tutorial(self):
         TutorialWindow(self.root)
 
+    def _open_about(self):
+        AboutWindow(self.root)
+
     def _get_selected_codec(self, combo_var, options):
         for display, value in options:
             if display == combo_var.get():
@@ -716,13 +814,20 @@ class BilibiliDownloaderApp:
             download_stream(audio_url, self.temp_audio, headers, self._audio_progress_cb)
             self._log("[下载] 音频流下载完成")
 
-            # 4. 本地 ffprobe 识别编码
+            # 4. 本地 ffprobe 识别编码（若音视频流地址填反则自动对调）
             self._log("[识别] 正在用 ffprobe 识别本地文件编码...")
-            v_codec, a_codec = probe_file_codecs(self.temp_video)
-            # 视频文件可能不含音频，音频文件可能不含视频，分别识别
-            _, a_codec2 = probe_file_codecs(self.temp_audio)
-            if a_codec2:
-                a_codec = a_codec2
+            v1, a1 = probe_file_codecs(self.temp_video)   # 视频分片中的视频/音频编码
+            v2, a2 = probe_file_codecs(self.temp_audio)   # 音频分片中的视频/音频编码
+
+            # 检测是否填反：视频分片里没有视频制式却有音频制式，
+            # 且音频分片里没有音频制式却有视频制式 → 说明两者填反了
+            if not v1 and a1 and not a2 and v2:
+                self._log("[识别] 检测到音视频流地址填反，已自动对调")
+                self.temp_video, self.temp_audio = self.temp_audio, self.temp_video
+                v_codec, a_codec = v2, a1
+            else:
+                v_codec = v1 or v2
+                a_codec = a1 or a2
 
             codec_display = f"视频 {v_codec or '未知'} | 音频 {a_codec or '未知'}"
             self._log(f"[识别] 原始编码: {codec_display}")
